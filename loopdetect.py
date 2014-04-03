@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-import pcapy, dpkt , sys
-import time , random, socket
-import pyaudio , wave
+import sys
+import time
+import random
+import socket
+import pcapy
+import dpkt
+import dnet
 
 def packetBody(length):
     rez = []
@@ -20,23 +24,23 @@ class loopDetector:
         self.pcaper = pcapy.open_live(iface,100,1,500)
         self.Mac = '00:19:5b:'+':'.join(packetBody(3))
         self.pcaper.setfilter('ether dst cf:00:00:00:00:00 and ether src %s' % self.Mac)
-        wf = wave.open('alarm.wav', 'rb')
-        self.pyA = pyaudio.PyAudio()
-        self.stream = self.pyA.open(format =
-                self.pyA.get_format_from_width(wf.getsampwidth()),
-                channels = wf.getnchannels(),
-                rate = wf.getframerate(),
-                output = True)
-        self.wfData = wf.readframes(100000)
-        wf.close()
+        #wf = wave.open('alarm.wav', 'rb')
+        #self.pyA = pyaudio.PyAudio()
+        #self.stream = self.pyA.open(format =
+        #        self.pyA.get_format_from_width(wf.getsampwidth()),
+        #        channels = wf.getnchannels(),
+        #        rate = wf.getframerate(),
+        #        output = True)
+        #self.wfData = wf.readframes(100000)
+        #wf.close()
 
-    def __del__(self):
-        self.stream.stop_stream()
-        self.stream.close()
-        self.pyA.terminate()
+    #def __del__(self):
+        #self.stream.stop_stream()
+        #self.stream.close()
+        #self.pyA.terminate()
 
-    def PlayAlarm(self):
-        self.stream.write(self.wfData)
+    #def PlayAlarm(self):
+    #    self.stream.write(self.wfData)
 
     def Capture(self,hdr,data):
         if data == str(self.sPkt):
@@ -52,7 +56,10 @@ class loopDetector:
                 endTime = time.time() + self.timeout
                 print "Send packet to %s" % self.iface
                 self.packetCount += 1
-                self.pcaper.sendpacket(str(self.sPkt))
+                #print "Packet is: %s" % self.sPkt
+                hw = dnet.eth(self.iface)
+                hw.send(str(self.sPkt))
+                #self.pcaper.sendpacket(str(self.sPkt))
                 self.packetReceived = 0
                 while time.time() < endTime:
                     try:
@@ -62,7 +69,7 @@ class loopDetector:
                 if self.packetReceived > 1:
                     self.loopCount += 1
                     print "Loop Detected. Duplication found %s" % self.packetReceived
-                    self.PlayAlarm()
+                    #self.PlayAlarm()
             except KeyboardInterrupt:
                 break
         print "Packets sent: ", self.packetCount , "Loops discovered : " , self.loopCount
